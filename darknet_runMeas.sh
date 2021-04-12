@@ -18,7 +18,11 @@ cd examples
 
 cd ../darknet-nnpack
 #currently redirecting all output from darknet
-./darknet_dist detect ../models/yolo.cfg ../models/yolo.weights ../examples/data/input/0.jpg &> dt.out
+
+#yolo_cut only performs the first 16 layers of the model. This gives a more direct comparison to the FTP
+./darknet_dist detect ../models/yolo_cut.cfg ../models/yolo.weights ../examples/data/input/0.jpg &> dt.out
+
+#./darknet_dist detect ../models/yolo.cfg ../models/yolo.weights ../examples/data/input/0.jpg &> dt.out
 
 # to keep deepthings output, comment this out
 #rm dt.out
