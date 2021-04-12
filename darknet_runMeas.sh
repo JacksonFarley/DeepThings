@@ -25,4 +25,7 @@ cd ../darknet-nnpack
 
 # both darknet and the measurement script should exit on their own.
 
+# this is just a second of sleep to allow the memory script to finish
+# outputting before the next command prompt
+sleep 1
 

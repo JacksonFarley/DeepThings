@@ -29,11 +29,11 @@ else
 	OUTPUT_FILE="meas_out.txt"
 fi
 
-VMSTAT_FILE=$(echo $OUTPUT_FILE | cut -f1 -d'.').swap
+VMSTAT_FILE=$(echo $OUTPUT_FILE | cut -f1 -d'.').memstat
 
-#VMSTAT_FILE="${OUTPUT_FILE}.swap"
+#VMSTAT_FILE="${OUTPUT_FILE}.memstat"
 
-echo swap file $VMSTAT_FILE specified
+echo memstat file $VMSTAT_FILE specified
 
 
 # vmstat originally prints an average, then the difference
@@ -67,8 +67,13 @@ kill $(ps | grep '[v]mstat' | awk '{print $1}')
 
 # retrieve swapped block value
 SWAPPED_BLOCKS=$(cat $VMSTAT_FILE | awk 'NR > 3'  | head -n -1 | awk '{s+=$7+$8} END {print s}')
+ELAPSED_TIME=$(cat $OUTPUT_FILE | tail -n -1 | awk '{print $5}' | awk -F: '{print ($1*60)+$2}')
+CPU_TIME=$(cat $OUTPUT_FILE | tail -n -1 | awk '{print $4}' | awk -F: '{print ($1*60)+$2}')
 
 echo swapped blocks $SWAPPED_BLOCKS calculated. 
+echo elapsed time   $ELAPSED_TIME s
+echo cpu time       $CPU_TIME s
+echo efficiency     $((($CPU_TIME*100)/$ELAPSED_TIME))%
 echo Swapped blocks: $SWAPPED_BLOCKS >> $OUTPUT_FILE
 
 #rm $VMSTAT_FILE

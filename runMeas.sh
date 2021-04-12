@@ -21,4 +21,7 @@ cd examples/
 
 # both deepthings and the measurement script should exit on their own.
 
+# this is just a second of sleep to allow for the memory probe to finish
+# outputting before a command prompt appears
+sleep 1
 
