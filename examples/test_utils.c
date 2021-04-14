@@ -1,5 +1,8 @@
 #include "test_utils.h"
 
+#define QUIET_FLAG
+#undef QUIET_FLAG
+
 void process_everything_in_gateway(void *arg){
    cnn_model* model = (cnn_model*)(((device_ctxt*)(arg))->model);
 #ifdef NNPACK
@@ -22,7 +25,10 @@ void process_everything_in_gateway(void *arg){
 
 
 void process_task_single_device(device_ctxt* ctxt, blob* temp, bool is_reuse){
+   
+#ifndef QUIET_FLAG
    printf("Task is: %d, frame number is %d\n", get_blob_task_id(temp), get_blob_frame_seq(temp));
+#endif
    cnn_model* model = (cnn_model*)(ctxt->model);
    blob* result;
    set_model_input(model, (float*)temp->data);
@@ -37,7 +43,9 @@ void process_task_single_device(device_ctxt* ctxt, blob* temp, bool is_reuse){
    /*if task doesn't generate any reuse_data*/
    blob* task_input_blob=temp;
    if(model->ftp_para_reuse->schedule[get_blob_task_id(task_input_blob)] != 1){
+#ifndef QUIET_FLAG
       printf("Serialize reuse data for task %d:%d \n", get_blob_cli_id(task_input_blob), get_blob_task_id(task_input_blob)); 
+#endif
       blob* serialized_temp  = self_reuse_data_serialization(ctxt, get_blob_task_id(task_input_blob), get_blob_frame_seq(task_input_blob));
       copy_blob_meta(serialized_temp, task_input_blob);
       free_blob(serialized_temp);
@@ -80,7 +88,10 @@ void partition_frame_and_perform_inference_thread_single_device(void *arg){
          temp = try_dequeue(ctxt->task_queue);
          if(temp == NULL) break;
          bool data_ready = false;
-         printf("====================Processing task id is %d, data source is %d, frame_seq is %d====================\n", get_blob_task_id(temp), get_blob_cli_id(temp), get_blob_frame_seq(temp));
+#ifndef QUIET_FLAG
+	 printf("====================Processing task id is %d, data source is %d, frame_seq is %d====================\n", get_blob_task_id(temp), get_blob_cli_id(temp), get_blob_frame_seq(temp));
+#endif
+
 #if DATA_REUSE
          data_ready = is_reuse_ready(model->ftp_para_reuse, get_blob_task_id(temp), frame_num);
          if((model->ftp_para_reuse->schedule[get_blob_task_id(temp)] == 1) && data_ready) {
@@ -225,6 +236,76 @@ void transfer_data(device_ctxt* client, device_ctxt* gateway){
    }
 
 }
+
+
+void client_sink(device_ctxt* client){
+   /* This function simulates the transfer_data function for the client, but
+    * It actually doesn't pass the information along to anything. this allows 
+    * For measurement of just the client performance without a gateway.*/
+
+   int32_t frame_num;
+   int32_t results_counter = 0; 
+   
+   blob* temp = dequeue(client->result_queue);
+#if DEBUG_FLAG
+   printf("Checking with client... : Client %d is ready, begin transferring data\n", temp->id);
+#endif
+   frame_num = get_blob_frame_seq(temp);
+   free_blob(temp);
+
+   if(frame_num < 0){
+#if DEBUG_FLAG
+   	printf("There is not any data to transfer at this time\n");
+#endif 
+   } else {  
+       while(1) {
+	      /* obtain one partition from the client */
+	      temp = dequeue(client->result_queue);
+#if DEBUG_FLAG  
+	      // printf("Sink data from client %d\n", cli_id);
+#endif
+	      //enqueue(gateway->results_pool[cli_id], temp);
+	      //gateway->results_counter[cli_id]++;
+	      results_counter++; 
+	      frame_num = get_blob_frame_seq(temp);
+	      free_blob(temp);
+
+	      
+
+	      //if(results_counter < batch_size) continue; 
+		  
+		  /* here, the client has sent a full batch of one image to the gateway.
+		   * the transfer data function now resets, informs the gateway it may 
+		   * continue via sending a blob to the 'ready_pool', and waits for the 
+		   * client to send a message of whether to continue or to exit */
+
+		  /* resetting */
+	      //results_counter = 0; 
+	      
+		  /* informing gateway all information is present */
+	      //temp = new_empty_blob(cli_id);
+	      //annotate_blob(temp, cli_id, frame_num, 0);
+	      //enqueue(gateway->ready_pool, temp);
+	      //free_blob(temp);
+
+		  /* waiting for the client to signal to continue (via the frame number) */
+	      //temp = dequeue(client->result_queue);
+	      //frame_num = get_blob_frame_seq(temp);
+	      //free_blob(temp);
+
+	      /* determine if the client has an additional task that it plans to send */
+		  if(frame_num >= 0){
+				continue;
+		  } else {
+		    /* the client has signaled that it has no more information to transmit
+			 * to the gateway. Exit the loop. */
+			break;
+	      }
+	   }
+   }
+
+}
+
 
 /* Deprecated */
 void transfer_data_continuous(device_ctxt* client, device_ctxt* gateway){
