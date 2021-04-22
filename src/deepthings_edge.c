@@ -34,10 +34,14 @@ device_ctxt* deepthings_edge_init(uint32_t N, uint32_t M, uint32_t fused_layers,
 
 /* Useful if there are two FTPs on the data, used for constructing the second */
 device_ctxt* deepthings_secondary_edge_init(uint32_t N, uint32_t M, uint32_t fused_start, uint32_t fused_layers, char* network, char* weights, uint32_t edge_id){
+   printf("in secondary edge init\n"); 
    device_ctxt* ctxt = init_secondary_client(edge_id);
    cnn_model* model = load_cnn_model(network, weights);
-
-   model->ftp_para = preform_secondary_ftp(N, M, fused_start, fused_layers, model->net_para);
+   printf("preforming\n"); 
+   
+   model->ftp_para = preform_ftp(N, M, fused_start, model->net_para);
+   model->sec_ftp_para = preform_secondary_ftp(2, 2, fused_start, fused_layers, model->net_para);
+   /* TODO fix reuse */
 #if DATA_REUSE
    model->ftp_para_reuse = preform_ftp_reuse(model->net_para, model->ftp_para);
 #endif

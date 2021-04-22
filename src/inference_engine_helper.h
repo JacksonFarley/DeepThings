@@ -42,6 +42,8 @@
 
 typedef struct cnn_model_wrapper{
    ftp_parameters* ftp_para;
+   /* second set of ftp_parameters added for the secondary client only */
+   ftp_parameters* sec_ftp_para; 
    network_parameters* net_para;
 #if DATA_REUSE
    ftp_parameters_reuse* ftp_para_reuse;

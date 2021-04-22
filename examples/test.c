@@ -32,16 +32,21 @@ int main(int argc, char **argv){
    char weight_file[30] = "../models/yolo.weights";
 
    printf("Including %d partitions of %d fused layers\n",partitions_h*partitions_w,fused_layers);
+   printf("initializing client with %d fused layers\n",fused_layers/2);
+   device_ctxt* client_ctxt = deepthings_edge_init(partitions_h, partitions_w, fused_layers/2, client_network_file, weight_file, this_cli_id);
 
-   device_ctxt* client_ctxt = deepthings_edge_init(partitions_h, partitions_w, fused_layers, client_network_file, weight_file, this_cli_id);
-#if !defined(CLIENT_ONLY) && !defined(MULTI_CLIENT_FTP)
+#ifdef MULTITHREAD
+   printf("initializing gateway\n");
    device_ctxt* gateway_ctxt = deepthings_gateway_init(partitions_h, partitions_w, fused_layers, network_file, weight_file, total_cli_num, addr_list);
-
-#elif defined(MULTI_CLIENT_FTP)
-    // this device should get updated with the remaining fused layers
-    device_ctxt* secondary_client_ctxt = deepthings_secondary_edge_init(partitions_h2, partitions_w2, fused_layers/2, fused_layers, client_network_file, weight_file, this_sec_cli_id); 
 #endif
 
+#ifdef MULTI_CLIENT_FTP
+    printf("initializing secondary client\n");
+    // this device should get updated with the remaining fused layers
+    device_ctxt* secondary_client_ctxt = deepthings_secondary_edge_init(partitions_h, partitions_w, fused_layers/2, fused_layers, client_network_file, weight_file, this_sec_cli_id); 
+#endif
+
+printf("starting execution");
    /*Multi-threaded version*/ 
 #ifdef MULTITHREAD          
    sys_thread_t t1 = sys_thread_new("partition_frame_and_perform_inference_thread_single_device", 
@@ -70,6 +75,7 @@ int main(int argc, char **argv){
 #endif
 
 #ifdef MULTI_CLIENT_FTP
+   printf("running multi-client version\n"); 
    sys_thread_t t1 = sys_thread_new("partition_frame_and_perform_inference_thread_single_device", 
                                      partition_frame_and_perform_inference_thread_single_device, client_ctxt, 0, 0);
    sys_thread_t t2 = sys_thread_new("partition_secondary_and_perform_inference_thread_single_device",

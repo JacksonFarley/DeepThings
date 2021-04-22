@@ -7,7 +7,7 @@
 #define PARTITIONS_H_MAX 6
 #define PARTITIONS_MAX 36
 #define THREAD_NUM 1
-#define DATA_REUSE 1
+#define DATA_REUSE 0
 
 /*Generate debugging information in log file*/
 #define DEBUG_LOG 1
