@@ -16,9 +16,10 @@ void process_task_single_device(device_ctxt* ctxt, blob* temp, bool is_reuse);
 void process_everything_in_gateway(void *arg);
 void transfer_data_with_number(device_ctxt* client, device_ctxt* gateway, int32_t task_num);
 void transfer_data(device_ctxt* client, device_ctxt* gateway);
-void client_sink(device_ctxt* client);
+void client_sink(void* arg); // use a client context but this is for thread reasons
 void deepthings_merge_result_thread_single_device(void *arg);
 void partition_frame_and_perform_inference_thread_single_device(void *arg);
+void partition_secondary_and_perform_inference_thread_single_device(void *arg);
 void process_task_single_device_jf(void *arg); 
 
 

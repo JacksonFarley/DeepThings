@@ -11,6 +11,25 @@ device_ctxt* init_client(uint32_t cli_id){
 }
 
 
+device_ctxt* init_secondary_client(uint32_t cli_id){
+   device_ctxt* ctxt = (device_ctxt*)malloc(sizeof(device_ctxt)); 
+/*Queues used in edge device*/
+   ctxt->task_queue = new_queue(MAX_QUEUE_SIZE);
+   ctxt->result_queue = new_queue(MAX_QUEUE_SIZE); 
+   ctxt->this_cli_id = cli_id;
+/*Queues used by the gateway that are now necessary for merging. 
+  Client numbering from gateway not necessary*/
+   ctxt->results_pool = (thread_safe_queue**)malloc(sizeof(thread_safe_queue*));
+   ctxt->results_counter = (uint32_t*)malloc(sizeof(uint32_t));
+   int i = 0; // used for compatibility with transfer_data
+   ctxt->results_pool[i] = new_queue(MAX_QUEUE_SIZE);
+   ctxt->results_counter[i] = 0;
+   ctxt->ready_pool = new_queue(MAX_QUEUE_SIZE); 
+
+   return ctxt;
+}
+
+
 void register_client(device_ctxt* ctxt){
    char request_type[20] = "register_gateway";
    service_conn* conn = connect_service(TCP, ctxt->gateway_local_addr, WORK_STEAL_PORT);
@@ -24,6 +43,7 @@ void cancel_client(device_ctxt* ctxt){
    send_request(request_type, 20, conn);
    close_service_connection(conn);
 }
+
 
 static void process_task(blob* temp, device_ctxt* ctxt){
    blob* result;

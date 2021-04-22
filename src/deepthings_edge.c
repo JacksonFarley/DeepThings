@@ -32,6 +32,30 @@ device_ctxt* deepthings_edge_init(uint32_t N, uint32_t M, uint32_t fused_layers,
    return ctxt;
 }
 
+/* Useful if there are two FTPs on the data, used for constructing the second */
+device_ctxt* deepthings_secondary_edge_init(uint32_t N, uint32_t M, uint32_t fused_start, uint32_t fused_layers, char* network, char* weights, uint32_t edge_id){
+   device_ctxt* ctxt = init_secondary_client(edge_id);
+   cnn_model* model = load_cnn_model(network, weights);
+
+   model->ftp_para = preform_secondary_ftp(N, M, fused_start, fused_layers, model->net_para);
+#if DATA_REUSE
+   model->ftp_para_reuse = preform_ftp_reuse(model->net_para, model->ftp_para);
+#endif
+   ctxt->model = model;
+   set_gateway_local_addr(ctxt, GATEWAY_LOCAL_ADDR);
+   set_gateway_public_addr(ctxt, GATEWAY_PUBLIC_ADDR);
+   set_total_frames(ctxt, FRAME_NUM);
+   set_batch_size(ctxt, N*M);
+#if DEBUG_LOG
+   char logname[20];
+   sprintf(logname, "edge_%d.log", edge_id);
+   FILE *log = fopen(logname, "w");
+   fclose(log);
+#endif
+   return ctxt;
+}
+
+
 #if DATA_REUSE
 void send_reuse_data(device_ctxt* ctxt, blob* task_input_blob){
    cnn_model* model = (cnn_model*)(ctxt->model);

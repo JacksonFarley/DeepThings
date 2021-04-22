@@ -94,6 +94,36 @@ ftp_parameters* preform_ftp(uint32_t N, uint32_t M, uint32_t fused_layers, netwo
    return ftp_para;
 }
 
+ftp_parameters* preform_secondary_ftp(uint32_t N, uint32_t M, uint32_t fused_start, uint32_t fused_layers, network_parameters* net_para){
+   ftp_parameters* ftp_para = (ftp_parameters*)malloc(sizeof(ftp_parameters));
+   ftp_para->partitions = N*M;
+   ftp_para->partitions_h = N;
+   ftp_para->partitions_w = M;
+   ftp_para->fused_start  = fused_start;
+   ftp_para->fused_layers = fused_layers;
+   int32_t i, j, l;
+   int32_t id = 0;
+   for(i = 0; i < ftp_para->partitions_h; i++){
+      for(j = 0; j < ftp_para->partitions_w; j++){
+         ftp_para->task_id[i][j] = id;
+         id++;
+      }
+   }
+   grid(net_para, ftp_para, M, N);
+   for(i = 0; i < ftp_para->partitions_h; i++){
+      for(j = 0; j < ftp_para->partitions_w; j++){
+         for(l = fused_layers-1; l >= fused_start; l--){
+            ftp_para->input_tiles[ftp_para->task_id[i][j]][l] = 
+                       traversal(net_para, ftp_para->output_tiles[ftp_para->task_id[i][j]][l], l);
+            if(l>fused_start) ftp_para->output_tiles[ftp_para->task_id[i][j]][l-1] 
+                     = ftp_para->input_tiles[ftp_para->task_id[i][j]][l];
+         }
+      }
+   }
+   return ftp_para;
+}
+
+
 #if DATA_REUSE
 /*Establish a dependency list, 0 means no dependencies, 1 depends on 0, 2 depends on 1 ...*/
 /*For current implementation, we only have 2 levels of dependency*/
