@@ -13,6 +13,7 @@ static double start_time;
 device_ctxt* deepthings_edge_init(uint32_t N, uint32_t M, uint32_t fused_layers, char* network, char* weights, uint32_t edge_id){
    device_ctxt* ctxt = init_client(edge_id);
    cnn_model* model = load_cnn_model(network, weights);
+
    model->ftp_para = preform_ftp(N, M, fused_layers, model->net_para);
 #if DATA_REUSE
    model->ftp_para_reuse = preform_ftp_reuse(model->net_para, model->ftp_para);

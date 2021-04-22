@@ -19,5 +19,15 @@ void transfer_data(device_ctxt* client, device_ctxt* gateway);
 void client_sink(device_ctxt* client);
 void deepthings_merge_result_thread_single_device(void *arg);
 void partition_frame_and_perform_inference_thread_single_device(void *arg);
+void process_task_single_device_jf(void *arg); 
+
+
+// for argument passing to process_task_single_device
+typedef struct ptsd_arguments {
+    device_ctxt * ctxt;
+    blob * temp;
+    bool is_reuse;
+} ptsd_args; 
+
 
 #endif/*TEST_UTIL*/

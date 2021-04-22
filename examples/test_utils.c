@@ -3,6 +3,9 @@
 #define QUIET_FLAG
 #undef QUIET_FLAG
 
+#define MULTI_THREAD_TASKS
+
+
 void process_everything_in_gateway(void *arg){
    cnn_model* model = (cnn_model*)(((device_ctxt*)(arg))->model);
 #ifdef NNPACK
@@ -26,6 +29,43 @@ void process_everything_in_gateway(void *arg){
 
 void process_task_single_device(device_ctxt* ctxt, blob* temp, bool is_reuse){
    
+#ifndef QUIET_FLAG
+   printf("Task is: %d, frame number is %d\n", get_blob_task_id(temp), get_blob_frame_seq(temp));
+#endif
+   cnn_model* model = (cnn_model*)(ctxt->model);
+   blob* result;
+   set_model_input(model, (float*)temp->data);
+   forward_partition(model, get_blob_task_id(temp), is_reuse);  
+   result = new_blob_and_copy_data(0, 
+                                      get_model_byte_size(model, model->ftp_para->fused_layers-1), 
+                                      (uint8_t*)(get_model_output(model, model->ftp_para->fused_layers-1))
+                                     );
+#if DATA_REUSE
+   set_coverage(model->ftp_para_reuse, get_blob_task_id(temp), get_blob_frame_seq(temp));
+   /*send_reuse_data(ctxt, temp);*/
+   /*if task doesn't generate any reuse_data*/
+   blob* task_input_blob=temp;
+   if(model->ftp_para_reuse->schedule[get_blob_task_id(task_input_blob)] != 1){
+#ifndef QUIET_FLAG
+      printf("Serialize reuse data for task %d:%d \n", get_blob_cli_id(task_input_blob), get_blob_task_id(task_input_blob)); 
+#endif
+      blob* serialized_temp  = self_reuse_data_serialization(ctxt, get_blob_task_id(task_input_blob), get_blob_frame_seq(task_input_blob));
+      copy_blob_meta(serialized_temp, task_input_blob);
+      free_blob(serialized_temp);
+   }
+#endif
+   copy_blob_meta(result, temp);
+   enqueue(ctxt->result_queue, result); 
+   free_blob(result);
+}
+
+void process_task_single_device_jf(void * arg){
+   // pointer arg must actually be a struct of type ptsd_args
+   ptsd_args * arg_ptr = (ptsd_args*) arg; 
+   device_ctxt * ctxt = arg_ptr->ctxt;  
+   blob * temp = arg_ptr->temp;
+   bool is_reuse = arg_ptr->is_reuse;
+
 #ifndef QUIET_FLAG
    printf("Task is: %d, frame number is %d\n", get_blob_task_id(temp), get_blob_frame_seq(temp));
 #endif
@@ -87,10 +127,13 @@ void partition_frame_and_perform_inference_thread_single_device(void *arg){
       while(1){
          temp = try_dequeue(ctxt->task_queue);
          if(temp == NULL) break;
+
          bool data_ready = false;
 #ifndef QUIET_FLAG
 	 printf("====================Processing task id is %d, data source is %d, frame_seq is %d====================\n", get_blob_task_id(temp), get_blob_cli_id(temp), get_blob_frame_seq(temp));
 #endif
+
+     /* TESTING: Make each task a separate process */ 
 
 #if DATA_REUSE
          data_ready = is_reuse_ready(model->ftp_para_reuse, get_blob_task_id(temp), frame_num);
@@ -116,8 +159,21 @@ void partition_frame_and_perform_inference_thread_single_device(void *arg){
 
 #endif/*DATA_REUSE*/
          /*process_task(ctxt, temp, data_ready);*/
+
+#ifdef MULTI_THREAD_TASKS
+         ptsd_args myargs = {ctxt, temp, data_ready}; 
+
+         sys_thread_t t1 = sys_thread_new("process_task_single_device_jf", process_task_single_device_jf, &myargs, 0, 0);
+
+         sys_thread_join(t1);
+
+#else  /* Single-threaded tasks as normal */
          process_task_single_device(ctxt, temp, data_ready);
-         free_blob(temp);
+        
+#endif /* MULTI_THREAD_TASKS */
+
+        free_blob(temp);
+        
       }
       /*Unregister and prepare for next image*/
       /*cancel_client(ctxt);*/
@@ -137,6 +193,7 @@ void partition_frame_and_perform_inference_thread_single_device(void *arg){
    printf("\nPartitioning and inference thread completed\n");
    
 }
+
 
 void deepthings_merge_result_thread_single_device(void *arg){
    cnn_model* model = (cnn_model*)(((device_ctxt*)(arg))->model);

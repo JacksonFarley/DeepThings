@@ -1,0 +1,27 @@
+
+#exclude current measurements
+examples/meas/*
+examples/profile/*.prof
+
+#exclude libraries
+distriot/libdistriot.a
+distriot/libdistriot.so
+
+#exclude executables
+deepthings
+examples/deepthings
+examples/profile/deepthings
+
+#exclude other outputs and make components
+obj/
+distriot/obj/
+
+examples/obj/
+examples/profile/obj/
+examples/dt.out
+examples/*.png
+examples/*.log
+examples/profile/*.png
+
+#exclude weights but not cfg files
+models/*.weights

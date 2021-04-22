@@ -26,6 +26,9 @@ void partition_and_enqueue(device_ctxt* ctxt, uint32_t frame_num){
          temp = new_blob_and_copy_data((int32_t)task, data_size, (uint8_t*)data);
          free(data);
          annotate_blob(temp, get_this_client_id(ctxt), frame_num, task);
+#if DEBUG_FLAG
+         printf("size of data in task %d before reuse is %lu\n", task, data_size);
+#endif
          enqueue(ctxt->task_queue, temp);
          free_blob(temp);
       }
@@ -51,6 +54,10 @@ void partition_and_enqueue(device_ctxt* ctxt, uint32_t frame_num){
                                   dw1, dw2, dh1, dh2);
             data_size = sizeof(float)*(dw2-dw1+1)*(dh2-dh1+1)*net_para->input_maps[0].c;
             temp = new_blob_and_copy_data((int32_t)task, data_size, (uint8_t*)data);
+
+#if DEBUG_FLAG
+         printf("size of data in task %d after reuse is %lu\n", task, data_size);
+#endif
             free(data);
             annotate_blob(temp, get_this_client_id(ctxt), frame_num, task);
             enqueue(ctxt->task_queue, temp);

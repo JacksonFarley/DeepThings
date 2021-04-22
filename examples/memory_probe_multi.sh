@@ -50,9 +50,10 @@ do
 done
 
 # print headers to the output file
+echo "PID   TID %CPU %MEM   TIME     ELAPSED  SIZE   RSS   DRS  TRS    SZ    VSZ COMMAND" > $OUTPUT_FILE
 
 
-ps --format pid,pcpu,pmem,bsdtime,etime,size,rss,drs,trs,sz,vsz,comm -C $COMMAND_PROBE > $OUTPUT_FILE
+ps -eL --format pid,tid,pcpu,pmem,bsdtime,etime,size,rss,drs,trs,sz,vsz,comm -C $COMMAND_PROBE | grep deepthings >> $OUTPUT_FILE
 sleep $MEASUREMENT_INTERVAL
 
 
@@ -60,7 +61,7 @@ sleep $MEASUREMENT_INTERVAL
 #All subsequent measurements don't need to have headers, thus the equals signs. 
 while [ $(ps -C "${COMMAND_PROBE}" | wc -l) -gt 1 ]
 do
-	ps --format pid=,pcpu=,pmem=,bsdtime=,etime=,size=,rss=,drs=,trs=,sz=,vsz=,comm= -C $COMMAND_PROBE >> $OUTPUT_FILE
+	ps -eL --format pid=,tid=,pcpu=,pmem=,bsdtime=,etime=,size=,rss=,drs=,trs=,sz=,vsz=,comm= -C $COMMAND_PROBE | grep deepthings >> $OUTPUT_FILE
 	sleep $MEASUREMENT_INTERVAL
 done
 
@@ -69,8 +70,8 @@ kill $(ps | grep '[v]mstat' | awk '{print $1}')
 
 # retrieve swapped block value
 SWAPPED_BLOCKS=$(cat $VMSTAT_FILE | awk 'NR > 3'  | head -n -1 | awk '{s+=$7+$8} END {print s}')
-ELAPSED_TIME=$(cat $OUTPUT_FILE | tail -n -1 | awk '{print $5}' | awk -F: '{print ($1*60)+$2}')
-CPU_TIME=$(cat $OUTPUT_FILE | tail -n -1 | awk '{print $4}' | awk -F: '{print ($1*60)+$2}')
+ELAPSED_TIME=$(cat $OUTPUT_FILE | tail -n -1 | awk '{print $6}' | awk -F: '{print ($1*60)+$2}')
+CPU_TIME=$(cat $OUTPUT_FILE | tail -n -1 | awk '{print $5}' | awk -F: '{print ($1*60)+$2}')
 
 echo swapped blocks $SWAPPED_BLOCKS calculated. 
 echo elapsed time   $ELAPSED_TIME s

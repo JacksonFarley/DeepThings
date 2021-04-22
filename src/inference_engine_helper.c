@@ -29,7 +29,9 @@ cnn_model* load_cnn_model(char* cfg, char* weights){
       model->net_para->input_maps[l].w = net->layers[l].w;
       model->net_para->input_maps[l].h = net->layers[l].h;
       model->net_para->input_maps[l].c = net->layers[l].c;
-
+//      printf("layer %d has input parameters w1:0 h1:0 w2:%d h2:%d w:%d h:%d c:%d\n",l,
+//             net->layers[l].w - 1, net->layers[l].h - 1, net->layers[l].w,
+//             net->layers[l].h, net->layers[l].c);
       model->net_para->output_maps[l].w1 = 0;
       model->net_para->output_maps[l].h1 = 0;
       model->net_para->output_maps[l].w2 = net->layers[l].out_w - 1;
@@ -37,6 +39,11 @@ cnn_model* load_cnn_model(char* cfg, char* weights){
       model->net_para->output_maps[l].w = net->layers[l].out_w;
       model->net_para->output_maps[l].h = net->layers[l].out_h;
       model->net_para->output_maps[l].c = net->layers[l].out_c;
+//      printf("layer %d has output parameters w1:0 h1:0 w2:%d h2:%d w:%d h:%d c:%d\n",l,
+//             net->layers[l].out_w - 1, net->layers[l].out_h - 1, net->layers[l].out_w,
+//             net->layers[l].out_h, net->layers[l].out_c);
+//      printf("layer %d has layer weights %lu, of size %d and is calculated to be %lu size by %d filters (or %d out channels) by %d channels\n",l,net->layers[l].nweights,sizeof(float),
+//             net->layers[l].size, net->layers[l].n, net->layers[l].out_c, net->layers[l].c);  
    }
    return model;
 }
