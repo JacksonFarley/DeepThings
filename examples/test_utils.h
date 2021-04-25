@@ -28,6 +28,7 @@ typedef struct ptsd_arguments {
     device_ctxt * ctxt;
     blob * temp;
     bool is_reuse;
+    uint32_t ftp_num;
 } ptsd_args; 
 
 

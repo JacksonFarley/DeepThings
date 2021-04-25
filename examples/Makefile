@@ -1,7 +1,7 @@
 OPENMP=0
 NNPACK=1
 ARM_NEON=1
-DEBUG=0
+DEBUG=1
 DEEPTHINGS=..
 DARKNET=../darknet-nnpack
 DISTRIOT=../distriot

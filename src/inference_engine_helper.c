@@ -62,7 +62,7 @@ float* crop_feature_maps(float* input, uint32_t w, uint32_t h, uint32_t c, uint3
          for(i = dw1; i < dw2+1; ++i){
             in_index  = i + w*(j + h*k);
             out_index  = (i - dw1) + out_w*(j - dh1) + out_w*out_h*k;
-	    output[out_index] = input[in_index];
+    	      output[out_index] = input[in_index];
          }
       }
    }
@@ -349,6 +349,89 @@ void forward_partition(cnn_model* model, uint32_t task_id, bool is_reuse){
    if (to_free_next_layer_input == 1) free(stitched_next_layer_input);
 #endif
 }
+
+void forward_second_partition(cnn_model* model, uint32_t task_id, bool is_reuse, uint32_t from){
+   // forward the partition starting from the new fusion point
+   network net = *(model->net);
+   ftp_parameters* ftp_para = model->sec_ftp_para;
+   /*network_parameters* net_para = model->net_para;*/
+   uint32_t l;
+   for(l = from; l < ftp_para->fused_layers; l++){
+      net.layers[l].h = ftp_para->input_tiles[task_id][l].h;
+      net.layers[l].out_h = (net.layers[l].h/net.layers[l].stride); 
+      net.layers[l].w = ftp_para->input_tiles[task_id][l].w;
+      net.layers[l].out_w = (net.layers[l].w/net.layers[l].stride);
+      net.layers[l].outputs = net.layers[l].out_h * net.layers[l].out_w * net.layers[l].out_c; 
+      net.layers[l].inputs = net.layers[l].h * net.layers[l].w * net.layers[l].c; 
+   }
+   uint32_t to_free = 0;
+   float * cropped_output;
+#if DATA_REUSE
+   uint32_t to_free_next_layer_input = 0;
+   float* stitched_next_layer_input = NULL; 
+   ftp_parameters_reuse* ftp_para_reuse = model->ftp_para_reuse;
+   if((model->ftp_para_reuse->schedule[task_id] == 1)&&is_reuse){
+      for(l = from; l < ftp_para_reuse->fused_layers; l++){
+         net.layers[l].h = ftp_para_reuse->input_tiles[task_id][l].h;
+         net.layers[l].out_h = (net.layers[l].h/net.layers[l].stride); 
+         net.layers[l].w = ftp_para_reuse->input_tiles[task_id][l].w;
+         net.layers[l].out_w = (net.layers[l].w/net.layers[l].stride);
+         net.layers[l].outputs = net.layers[l].out_h * net.layers[l].out_w * net.layers[l].out_c; 
+         net.layers[l].inputs = net.layers[l].h * net.layers[l].w * net.layers[l].c; 
+      }
+   }
+#endif
+
+   for(l = from; l < ftp_para->fused_layers; l++){
+      net.layers[l].forward(net.layers[l], net);
+      if (to_free == 1) {
+         free(cropped_output); 
+         to_free = 0; 
+         /*Free the memory allocated by the crop_feature_maps function call;*/
+      }
+      /*
+        The effective region is actually shrinking after each convolutional layer 
+        because of padding effects.
+        So for the calculation of next layer, the boundary pixels should be removed.
+      */
+      tile_region tmp;
+      if(net.layers[l].type == CONVOLUTIONAL){
+         tmp = relative_offsets(ftp_para->input_tiles[task_id][l], 
+                                       ftp_para->output_tiles[task_id][l]);
+#if DATA_REUSE
+         if((model->ftp_para_reuse->schedule[task_id] == 1)&&is_reuse){
+            tmp = relative_offsets(ftp_para_reuse->input_tiles[task_id][l], 
+                                       ftp_para_reuse->output_tiles[task_id][l]);
+         }
+#endif
+         cropped_output = crop_feature_maps(net.layers[l].output, 
+                      net.layers[l].out_w, net.layers[l].out_h, net.layers[l].out_c,
+                      tmp.w1, tmp.w2, tmp.h1, tmp.h2);
+         to_free = 1;
+      } else {cropped_output = net.layers[l].output;}  
+      net.input = cropped_output;
+#if DATA_REUSE
+      record_overlapped_output(model, task_id, l, cropped_output);/*Record the generated overlapped regions for reuse*/
+      if((model->ftp_para_reuse->schedule[task_id] == 1)&&is_reuse){
+         if (to_free_next_layer_input == 1) {
+            free(stitched_next_layer_input);
+            to_free_next_layer_input = 0;
+         }
+         if(l < (ftp_para_reuse->fused_layers - 1)){
+            stitched_next_layer_input = stitch_reuse_output(model, task_id, l, cropped_output);
+            to_free_next_layer_input = 1;
+         }
+         net.input = stitched_next_layer_input;
+      }
+#endif
+   }
+   if (to_free == 1) free(cropped_output);
+
+#if DATA_REUSE
+   if (to_free_next_layer_input == 1) free(stitched_next_layer_input);
+#endif
+}
+
 
 void draw_object_boxes(cnn_model* model, uint32_t id){
    network net = *(model->net);

@@ -1,4 +1,7 @@
 #include "test_utils.h"
+      // need to tell dequeue_and_merge to stitch on the 8th layer
+      // of the network. For this, we say that the fused cutoff, 
+      // considered the fused_layers parameter, is at the first cutoff, rather than the second. 
 
 #define QUIET_FLAG
 #undef QUIET_FLAG
@@ -64,19 +67,36 @@ void process_task_single_device_jf(void * arg){
    ptsd_args * arg_ptr = (ptsd_args*) arg; 
    device_ctxt * ctxt = arg_ptr->ctxt;  
    blob * temp = arg_ptr->temp;
+   uint32_t ftp_num = arg_ptr->ftp_num;  
    bool is_reuse = arg_ptr->is_reuse;
 
 #ifndef QUIET_FLAG
    printf("Task is: %d, frame number is %d\n", get_blob_task_id(temp), get_blob_frame_seq(temp));
 #endif
+
    cnn_model* model = (cnn_model*)(ctxt->model);
+   ftp_parameters* ftp_para = model->ftp_para; 
    blob* result;
    set_model_input(model, (float*)temp->data);
-   forward_partition(model, get_blob_task_id(temp), is_reuse);  
-   result = new_blob_and_copy_data(0, 
-                                      get_model_byte_size(model, model->ftp_para->fused_layers-1), 
-                                      (uint8_t*)(get_model_output(model, model->ftp_para->fused_layers-1))
+
+   if(ftp_num == 0){
+      forward_partition(model, get_blob_task_id(temp), is_reuse);  
+      result = new_blob_and_copy_data(0, 
+                                      get_model_byte_size(model, ftp_para->fused_layers-1), 
+                                      (uint8_t*)(get_model_output(model, ftp_para->fused_layers-1))
                                      );
+
+   } else { 
+      ftp_para = model->sec_ftp_para; 
+      forward_second_partition(model, get_blob_task_id(temp), is_reuse, ftp_para->fused_start);  
+
+      result = new_blob_and_copy_data(0, 
+                                      get_model_byte_size(model, ftp_para->fused_layers-1), 
+                                      (uint8_t*)(get_model_output(model, ftp_para->fused_layers-1))
+                                     );
+   }
+
+
 #if DATA_REUSE
    set_coverage(model->ftp_para_reuse, get_blob_task_id(temp), get_blob_frame_seq(temp));
    /*send_reuse_data(ctxt, temp);*/
@@ -161,7 +181,7 @@ void partition_frame_and_perform_inference_thread_single_device(void *arg){
          /*process_task(ctxt, temp, data_ready);*/
 
 #ifdef MULTI_THREAD_TASKS
-         ptsd_args myargs = {ctxt, temp, data_ready}; 
+         ptsd_args myargs = {ctxt, temp, data_ready, 0}; 
 
          sys_thread_t t1 = sys_thread_new("process_task_single_device_jf", process_task_single_device_jf, &myargs, 0, 0);
 
@@ -197,46 +217,34 @@ void partition_frame_and_perform_inference_thread_single_device(void *arg){
 void partition_secondary_and_perform_inference_thread_single_device(void *arg){
    device_ctxt* ctxt = (device_ctxt*)arg;
    cnn_model* model = (cnn_model*)(ctxt->model);
+   ftp_parameters * ftp_para = model->ftp_para;
 #ifdef NNPACK
    nnp_initialize();
    model->net->threadpool = pthreadpool_create(THREAD_NUM);
 #endif
    blob* temp;
+   blob* temp2;
    uint32_t frame_num;
    
    int32_t cli_id;
    int32_t frame_seq;
    int32_t count = 0;
    for(count = 0; count < FRAME_NUM; count ++){
-      temp = dequeue_and_merge((device_ctxt*)arg);
-      cli_id = get_blob_cli_id(temp);
-      frame_seq = get_blob_frame_seq(temp);
+
+      temp2 = dequeue_and_merge(ctxt);
+      // at this point, the stitching should be correct
+      cli_id = get_blob_cli_id(temp2);
+      frame_seq = get_blob_frame_seq(temp2);
 #if DEBUG_FLAG
       printf("Client %d, frame sequence number %d, all partitions are merged in deepthings_merge_result_thread\n", cli_id, frame_seq);
 #endif
-      float* fused_output = (float*)(temp->data);
+      float* fused_output = (float*)(temp2->data);
 
       printf("some fused output %f %f %f\n", *fused_output, *(fused_output + 32), *(fused_output+100));
-      image_holder img = load_image_as_model_input(model, get_blob_frame_seq(temp));
       set_model_input(model, fused_output);
-      // TODO: partition and enqueue?         
-      free_blob(temp);
+      
+      // inform transfer_data of information to send 
 
-#if DEBUG_FLAG
-      printf("Client %d, frame sequence number %d, finish processing\n", cli_id, frame_seq);
-#endif
-   }
-
-    
-
-
-   /*bool* reuse_data_is_required;*/   
-   for(frame_num = 0; frame_num < FRAME_NUM; frame_num ++){
-      /*Wait for i/o device input*/
-      /*recv_img()*/
-
-      /*Load image and partition, fill task queues*/
-      //load_image_as_model_input(model, frame_num);
       
       /* the client thread sends a blob in the results queue, informing the transfer_data function
 	  that there is information to send. */
@@ -247,8 +255,15 @@ void partition_secondary_and_perform_inference_thread_single_device(void *arg){
 
       /* in this thread currently, we're planning on having the task queue
          filled by the special transfer data thread */
+
+
+      partition_secondary_and_enqueue(ctxt, 8, 0);
+      // all information is copied in the crop feature map section
+      free_blob(temp2);
+      
+      // TODO: partition and enqueue get the cutoff and frame_num from somewhere!!
       //partition_and_enqueue(ctxt, frame_num);
-	  /*register_client(ctxt);*/
+      /*register_client(ctxt);*/
 
       /*Dequeue and process task*/
       while(1){
@@ -288,7 +303,7 @@ void partition_secondary_and_perform_inference_thread_single_device(void *arg){
          /*process_task(ctxt, temp, data_ready);*/
 
 #ifdef MULTI_THREAD_TASKS
-         ptsd_args myargs = {ctxt, temp, data_ready}; 
+         ptsd_args myargs = {ctxt, temp, data_ready, 1}; 
 
          sys_thread_t t1 = sys_thread_new("process_task_single_device_jf", process_task_single_device_jf, &myargs, 0, 0);
 

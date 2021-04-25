@@ -3,19 +3,25 @@
 #include "inference_engine_helper.h"
 
 static inline void grid(network_parameters* net_para, ftp_parameters* ftp_para, uint32_t M, uint32_t N){
+/* makes initial even non-overlapping grid of the output map for FTP.
+   This allows a later traversal to crop feature maps appropriately */ 
+
    int32_t w = net_para->output_maps[ftp_para->fused_layers-1].w;
    int32_t h = net_para->output_maps[ftp_para->fused_layers-1].h;
    int32_t partition_w = M;
    int32_t partition_h = N;
+   // stride_w is the width of each grid partition.
    int32_t stride_w = ceil(((float)w)/((float)partition_w));    
    int32_t start_w = 0;
-   int32_t end_w = stride_w - 1;
+   int32_t end_w = stride_w - 1; // subtract 1 due to 0-indexing
    int32_t stride_h = ceil(((float)h)/((float)partition_h));    
    int32_t start_h = 0;
-   int32_t end_h = stride_h - 1;
+   int32_t end_h = stride_h - 1; // subtract 1 due to 0-indexing
    int32_t i, j, task_id;
 
+   // create the grid going right to left, top to bottom.
    for(i = 0; i < partition_h; i++){
+      // reset right to left after each full row
       start_w = 0;
       end_w = stride_w - 1;	 
       for(j = 0; j < partition_w; j++){
@@ -26,11 +32,18 @@ static inline void grid(network_parameters* net_para, ftp_parameters* ftp_para, 
          ftp_para->output_tiles[task_id][ftp_para->fused_layers-1].h2 = end_h;
          ftp_para->output_tiles[task_id][ftp_para->fused_layers-1].h = end_h - start_h + 1;
          ftp_para->output_tiles[task_id][ftp_para->fused_layers-1].w = end_w - start_w + 1;
+
+         // move the partition to the next grid square
          start_w = end_w + 1;
+         // in the rightmost partition, use the end width as the wall (edge of network),
+         // rather than striding over the right edge
          if(j == (partition_w-2)) {end_w = w - 1;}
          else {end_w = end_w + stride_w;}
       }
       start_h = end_h + 1;
+      
+      // in the bottommost partition, use the end width as the wall (edge of network),
+      // rather than striding over the bottom edge
       if(i == (partition_h-2)) {end_h = h - 1;}
       else {end_h = end_h + stride_h;}
    }

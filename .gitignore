@@ -25,3 +25,7 @@ examples/profile/*.png
 
 #exclude weights but not cfg files
 models/*.weights
+
+#exclude debugging dumps
+examples/dt_data*
+
