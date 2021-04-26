@@ -257,7 +257,7 @@ void partition_secondary_and_perform_inference_thread_single_device(void *arg){
          filled by the special transfer data thread */
 
 
-      partition_secondary_and_enqueue(ctxt, 8, 0);
+      partition_secondary_and_enqueue(ctxt, model->sec_ftp_para->fused_start, 0);
       // all information is copied in the crop feature map section
       free_blob(temp2);
       

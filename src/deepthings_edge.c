@@ -33,23 +33,25 @@ device_ctxt* deepthings_edge_init(uint32_t N, uint32_t M, uint32_t fused_layers,
 }
 
 /* Useful if there are two FTPs on the data, used for constructing the second */
-device_ctxt* deepthings_secondary_edge_init(uint32_t N, uint32_t M, uint32_t fused_start, uint32_t fused_layers, char* network, char* weights, uint32_t edge_id){
+device_ctxt* deepthings_secondary_edge_init(uint32_t N1, uint32_t M1, uint32_t N2, uint32_t M2, uint32_t fused_start, uint32_t fused_layers, char* network, char* weights, uint32_t edge_id){
    printf("in secondary edge init\n"); 
    device_ctxt* ctxt = init_secondary_client(edge_id);
    cnn_model* model = load_cnn_model(network, weights);
    printf("preforming\n"); 
    
-   model->ftp_para = preform_ftp(N, M, fused_start, model->net_para);
-   model->sec_ftp_para = preform_secondary_ftp(2, 2, fused_start, fused_layers, model->net_para);
+   model->ftp_para = preform_ftp(N1, M1, fused_start, model->net_para);
+   model->sec_ftp_para = preform_secondary_ftp(N2, M2, fused_start, fused_layers, model->net_para);
    /* TODO fix reuse */
 #if DATA_REUSE
    model->ftp_para_reuse = preform_ftp_reuse(model->net_para, model->ftp_para);
 #endif
    ctxt->model = model;
+   // setting parameters to recieve the data from the first client
+   // TODO necessary to set addresses on same device? probably not.
    set_gateway_local_addr(ctxt, GATEWAY_LOCAL_ADDR);
    set_gateway_public_addr(ctxt, GATEWAY_PUBLIC_ADDR);
    set_total_frames(ctxt, FRAME_NUM);
-   set_batch_size(ctxt, N*M);
+   set_batch_size(ctxt, N1*M1);
 #if DEBUG_LOG
    char logname[20];
    sprintf(logname, "edge_%d.log", edge_id);
