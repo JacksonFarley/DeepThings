@@ -47,6 +47,7 @@ typedef struct cnn_model_wrapper{
    network_parameters* net_para;
 #if DATA_REUSE
    ftp_parameters_reuse* ftp_para_reuse;
+   ftp_parameters_reuse* sec_ftp_para_reuse;
 #endif
    network* net;/*network is from Darknet*/
 } cnn_model;

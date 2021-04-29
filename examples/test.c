@@ -1,4 +1,5 @@
 #include "test_utils.h"
+#include "rTime.h"
 
 static const char* addr_list[MAX_EDGE_NUM] = EDGE_ADDR_LIST;
 
@@ -8,7 +9,8 @@ typedef enum mode_of_execution {
    MultiThread_mode,
    ClientOnly_mode,
    MultiFuse_mode,
-   MultiFusesOnly_mode
+   MultiFusesOnly_mode,
+   WeightFileCreation
 } mode_of_exe;
 
 typedef struct main_parameters {
@@ -28,13 +30,14 @@ main_para default_main_parameters(void){
 }
 
 
+
 // Local Functions 
 
 int execute_MultiThread(main_para *);
 int execute_ClientOnly(main_para *);
 int execute_MultiFuse(main_para *);
 int execute_MultiFusesOnly(main_para *);
-
+int execute_WeightFileCreation(main_para *);
 
 // GLOBALS
 
@@ -95,6 +98,9 @@ int main(int argc, char **argv){
          break;
       case MultiFusesOnly_mode:   
          execute_MultiFusesOnly(&args);
+         break;
+      case WeightFileCreation:
+         execute_WeightFileCreation(&args);
    }
    return 0;
 }
@@ -106,8 +112,17 @@ int execute_MultiThread(main_para * args){
       printf("Executing in MultiThread mode\n");
       printf("Initializing client with %dx%d partitions of %d fused layers\n", args->partitions_h, args->partitions_w, args->fused_layers); 
    }
+   rTime time; 
+   rTime_init(&time);   
+
    device_ctxt* client_ctxt = deepthings_edge_init(args->partitions_h, args->partitions_w, args->fused_layers, client_network_file, weight_file, this_cli_id);
    
+   uint64_t diff = rTime_getMilliSec(&time);
+
+   printf("Time to do init: %lu\n",diff);
+
+   
+
    if(args->verbose){
       printf("initializing gateway\n");
    }
@@ -123,6 +138,7 @@ int execute_MultiThread(main_para * args){
    }
    sys_thread_join(t1);
    sys_thread_join(t2);
+   
 
    return 0; 
     
@@ -223,3 +239,8 @@ int execute_MultiFusesOnly(main_para * args){
    return 0; 
 }
 
+int execute_WeightFileCreation(main_para * args) {
+   make_partial_weight_files(network_file, weight_file);
+
+   return 0; 
+}

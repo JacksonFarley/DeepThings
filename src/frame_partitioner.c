@@ -27,7 +27,7 @@ void partition_and_enqueue(device_ctxt* ctxt, uint32_t frame_num){
          free(data);
          annotate_blob(temp, get_this_client_id(ctxt), frame_num, task);
 #if DEBUG_FLAG
-         printf("size of data in task %d before reuse is %lu\n", task, data_size);
+         printf("size of data in task %d before reuse is %u\n", task, data_size);
 #endif
          enqueue(ctxt->task_queue, temp);
          free_blob(temp);
@@ -55,9 +55,6 @@ void partition_and_enqueue(device_ctxt* ctxt, uint32_t frame_num){
             data_size = sizeof(float)*(dw2-dw1+1)*(dh2-dh1+1)*net_para->input_maps[0].c;
             temp = new_blob_and_copy_data((int32_t)task, data_size, (uint8_t*)data);
 
-#if DEBUG_FLAG
-         printf("size of data in task %d after reuse is %lu\n", task, data_size);
-#endif
             free(data);
             annotate_blob(temp, get_this_client_id(ctxt), frame_num, task);
             enqueue(ctxt->task_queue, temp);
@@ -85,6 +82,9 @@ void partition_and_enqueue(device_ctxt* ctxt, uint32_t frame_num){
                                   dw1, dw2, dh1, dh2);
             ftp_para_reuse->shrinked_input_size[task] = 
                           sizeof(float)*(dw2-dw1+1)*(dh2-dh1+1)*net_para->input_maps[0].c;
+#if DEBUG_FLAG
+         printf("size of data in task %d after reuse is %u\n", task, ftp_para_reuse->shrinked_input_size);
+#endif
          }
       }
    }
@@ -120,7 +120,7 @@ void partition_secondary_and_enqueue(device_ctxt* ctxt, uint32_t cutoff, uint32_
          free(data);
          annotate_blob(temp, get_this_client_id(ctxt), frame_num, task);
 #if DEBUG_FLAG
-         printf("size of data in task %d before reuse is %lu\n", task, data_size);
+         printf("size of data in task %d before reuse is %u\n", task, data_size);
 #endif
          enqueue(ctxt->task_queue, temp);
          free_blob(temp);
@@ -130,16 +130,16 @@ void partition_secondary_and_enqueue(device_ctxt* ctxt, uint32_t cutoff, uint32_
 #if DATA_REUSE
 
 
-   for(i = 0; i < model->ftp_para_reuse->partitions_h; i++){
-      for(j = 0; j < model->ftp_para_reuse->partitions_w; j++){
-         task = model->ftp_para_reuse->task_id[i][j];
-         if(model->ftp_para_reuse->schedule[task] == 1){
+   for(i = 0; i < model->sec_ftp_para_reuse->partitions_h; i++){
+      for(j = 0; j < model->sec_ftp_para_reuse->partitions_w; j++){
+         task = model->sec_ftp_para_reuse->task_id[i][j];
+         if(model->sec_ftp_para_reuse->schedule[task] == 1){
             remove_by_id(ctxt->task_queue, task);
             /*Enqueue original size for rollback execution if adjacent partition is not ready... ...*/
-            dw1 = model->sec_ftp_para->input_tiles[task][0].w1;
-            dw2 = model->sec_ftp_para->input_tiles[task][0].w2;
-            dh1 = model->sec_ftp_para->input_tiles[task][0].h1;
-            dh2 = model->sec_ftp_para->input_tiles[task][0].h2;
+            dw1 = model->sec_ftp_para->input_tiles[task][cutoff].w1;
+            dw2 = model->sec_ftp_para->input_tiles[task][cutoff].w2;
+            dh1 = model->sec_ftp_para->input_tiles[task][cutoff].h1;
+            dh2 = model->sec_ftp_para->input_tiles[task][cutoff].h2;
             data = crop_feature_maps(get_model_input(model), 
                                   net_para->input_maps[cutoff].w, 
                                   net_para->input_maps[cutoff].h,
@@ -148,9 +148,6 @@ void partition_secondary_and_enqueue(device_ctxt* ctxt, uint32_t cutoff, uint32_
             data_size = sizeof(float)*(dw2-dw1+1)*(dh2-dh1+1)*net_para->input_maps[cutoff].c;
             temp = new_blob_and_copy_data((int32_t)task, data_size, (uint8_t*)data);
 
-#if DEBUG_FLAG
-         printf("size of data in task %d after reuse is %lu\n", task, data_size);
-#endif
             free(data);
             annotate_blob(temp, get_this_client_id(ctxt), frame_num, task);
             enqueue(ctxt->task_queue, temp);
@@ -160,16 +157,16 @@ void partition_secondary_and_enqueue(device_ctxt* ctxt, uint32_t cutoff, uint32_
    }
 
 
-   ftp_parameters_reuse* ftp_para_reuse = model->ftp_para_reuse;
+   ftp_parameters_reuse* ftp_para_reuse = model->sec_ftp_para_reuse;
    clean_coverage(ftp_para_reuse, frame_num);
    for(i = 0; i < ftp_para_reuse->partitions_h; i++){
       for(j = 0; j < ftp_para_reuse->partitions_w; j++){
          task = ftp_para_reuse->task_id[i][j];
          if(ftp_para_reuse->schedule[task] == 1){
-            dw1 = ftp_para_reuse->input_tiles[task][0].w1;
-            dw2 = ftp_para_reuse->input_tiles[task][0].w2;
-            dh1 = ftp_para_reuse->input_tiles[task][0].h1;
-            dh2 = ftp_para_reuse->input_tiles[task][0].h2;
+            dw1 = ftp_para_reuse->input_tiles[task][cutoff].w1;
+            dw2 = ftp_para_reuse->input_tiles[task][cutoff].w2;
+            dh1 = ftp_para_reuse->input_tiles[task][cutoff].h1;
+            dh2 = ftp_para_reuse->input_tiles[task][cutoff].h2;
             ftp_para_reuse->shrinked_input[task] = 
                                   crop_feature_maps(get_model_input(model), 
                                   net_para->input_maps[cutoff].w, 
@@ -178,7 +175,11 @@ void partition_secondary_and_enqueue(device_ctxt* ctxt, uint32_t cutoff, uint32_
                                   dw1, dw2, dh1, dh2);
             ftp_para_reuse->shrinked_input_size[task] = 
                           sizeof(float)*(dw2-dw1+1)*(dh2-dh1+1)*net_para->input_maps[cutoff].c;
-         }
+#if DEBUG_FLAG
+         printf("size of data in task %d after reuse is %u\n", task, ftp_para_reuse->shrinked_input_size);
+#endif
+    
+        }
       }
    }
 #endif

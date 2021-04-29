@@ -3,6 +3,7 @@
 #include "inference_engine_helper.h"
 #include "frame_partitioner.h"
 #include "reuse_data_serialization.h"
+#include "partial_network.h"
 #if DEBUG_COMMU_SIZE
 static double commu_size;
 #endif
@@ -12,8 +13,8 @@ static double start_time;
 
 device_ctxt* deepthings_edge_init(uint32_t N, uint32_t M, uint32_t fused_layers, char* network, char* weights, uint32_t edge_id){
    device_ctxt* ctxt = init_client(edge_id);
-   cnn_model* model = load_cnn_model(network, weights);
-
+   cnn_model* model = load_partial_cnn_model(network, weights, 0, fused_layers);
+//   cnn_model* model = load_cnn_model(network, weights);
    model->ftp_para = preform_ftp(N, M, fused_layers, model->net_para);
 #if DATA_REUSE
    model->ftp_para_reuse = preform_ftp_reuse(model->net_para, model->ftp_para);
@@ -36,14 +37,14 @@ device_ctxt* deepthings_edge_init(uint32_t N, uint32_t M, uint32_t fused_layers,
 device_ctxt* deepthings_secondary_edge_init(uint32_t N1, uint32_t M1, uint32_t N2, uint32_t M2, uint32_t fused_start, uint32_t fused_layers, char* network, char* weights, uint32_t edge_id){
    printf("in secondary edge init\n"); 
    device_ctxt* ctxt = init_secondary_client(edge_id);
-   cnn_model* model = load_cnn_model(network, weights);
+   cnn_model* model = load_partial_cnn_model(network, weights, fused_start, fused_layers);
    printf("preforming\n"); 
    
    model->ftp_para = preform_ftp(N1, M1, fused_start, model->net_para);
    model->sec_ftp_para = preform_secondary_ftp(N2, M2, fused_start, fused_layers, model->net_para);
    /* TODO fix reuse */
 #if DATA_REUSE
-   model->ftp_para_reuse = preform_ftp_reuse(model->net_para, model->ftp_para);
+   model->sec_ftp_para_reuse = preform_ftp_reuse(model->net_para, model->sec_ftp_para);
 #endif
    ctxt->model = model;
    // setting parameters to recieve the data from the first client
@@ -70,7 +71,7 @@ void send_reuse_data(device_ctxt* ctxt, blob* task_input_blob){
 
    service_conn* conn;
 
-   blob* temp  = self_reuse_data_serialization(ctxt, get_blob_task_id(task_input_blob), get_blob_frame_seq(task_input_blob));
+   blob* temp  = self_reuse_data_serialization(ctxt, get_blob_task_id(task_input_blob), get_blob_frame_seq(task_input_blob), 0);
    conn = connect_service(TCP, ctxt->gateway_local_addr, WORK_STEAL_PORT);
    send_request("reuse_data", 20, conn);
 #if DEBUG_DEEP_EDGE
@@ -127,8 +128,8 @@ void request_reuse_data(device_ctxt* ctxt, blob* task_input_blob, bool* reuse_da
    fclose(log);
 #endif*/
    copy_blob_meta(temp, task_input_blob);
-   overlapped_tile_data** temp_region_and_data = adjacent_reuse_data_deserialization(model, get_blob_task_id(temp), (float*)temp->data, get_blob_frame_seq(temp), reuse_data_is_required);
-   place_adjacent_deserialized_data(model, get_blob_task_id(temp), temp_region_and_data, reuse_data_is_required);
+   overlapped_tile_data** temp_region_and_data = adjacent_reuse_data_deserialization(model, get_blob_task_id(temp), (float*)temp->data, get_blob_frame_seq(temp), reuse_data_is_required, 0);
+   place_adjacent_deserialized_data(model, get_blob_task_id(temp), temp_region_and_data, reuse_data_is_required, 0);
    free_blob(temp);
 
    close_service_connection(conn);
@@ -200,7 +201,7 @@ void partition_frame_and_perform_inference_thread(void *arg){
             temp = shrinked_temp;
 
 
-            reuse_data_is_required = check_missing_coverage(model, get_blob_task_id(temp), get_blob_frame_seq(temp));
+            reuse_data_is_required = check_missing_coverage(model, get_blob_task_id(temp), get_blob_frame_seq(temp), 0);
 #if DEBUG_DEEP_EDGE
             printf("Request data from gateway, is there anything missing locally? ...\n");
             print_reuse_data_is_required(reuse_data_is_required);
@@ -323,7 +324,7 @@ void* steal_client_reuse_aware(void* srv_conn, void* arg){
 
    if(edge_model->ftp_para_reuse->schedule[get_blob_task_id(temp)] == 1 && is_reuse_ready(edge_model->ftp_para_reuse, get_blob_task_id(temp), get_blob_frame_seq(temp))) {
       uint32_t position;
-      int32_t* adjacent_id = get_adjacent_task_id_list(edge_model, task_id);
+      int32_t* adjacent_id = get_adjacent_task_id_list(edge_model, task_id, 0);
       for(position = 0; position < 4; position++){
          if(adjacent_id[position]==-1) continue;
          reuse_data_is_required[position] = true;

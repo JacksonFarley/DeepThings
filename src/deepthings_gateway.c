@@ -203,8 +203,8 @@ void* recv_reuse_data_from_edge(void* srv_conn, void* arg){
    printf("Overlapped data for client %d, task %d is collected from %d: %s, size is %d\n", cli_id, task_id, processing_cli_id, ip_addr, temp->size);
 #endif
    if(overlapped_data_pool[cli_id][task_id][frame_seq] != NULL)
-      free_self_overlapped_tile_data(gateway_model,  overlapped_data_pool[cli_id][task_id][frame_seq]);
-   overlapped_data_pool[cli_id][task_id][frame_seq] = self_reuse_data_deserialization(gateway_model, task_id, (float*)temp->data, get_blob_frame_seq(temp));
+      free_self_overlapped_tile_data(gateway_model,  overlapped_data_pool[cli_id][task_id][frame_seq],0);
+   overlapped_data_pool[cli_id][task_id][frame_seq] = self_reuse_data_deserialization(gateway_model, task_id, (float*)temp->data, get_blob_frame_seq(temp), 0);
 
    if(processing_cli_id != cli_id) notify_coverage((device_ctxt*)arg, temp, cli_id);
    free_blob(temp);
@@ -244,7 +244,7 @@ void* send_reuse_data_to_edge(void* srv_conn, void* arg){
    print_reuse_data_is_required(reuse_data_is_required);
 #endif
    uint32_t position;
-   int32_t* adjacent_id = get_adjacent_task_id_list(gateway_model, task_id);
+   int32_t* adjacent_id = get_adjacent_task_id_list(gateway_model, task_id,0);
 
    for(position = 0; position < 4; position++){
       if(adjacent_id[position]==-1) continue;
@@ -252,11 +252,11 @@ void* send_reuse_data_to_edge(void* srv_conn, void* arg){
 #if DEBUG_DEEP_GATEWAY
          printf("place_self_deserialized_data for client %d, task %d, the adjacent task is %d\n", cli_id, task_id, adjacent_id[position]);
 #endif
-         place_self_deserialized_data(gateway_model, adjacent_id[position], overlapped_data_pool[cli_id][adjacent_id[position]][frame_num]);
+         place_self_deserialized_data(gateway_model, adjacent_id[position], overlapped_data_pool[cli_id][adjacent_id[position]][frame_num],0);
       }
    }
    free(adjacent_id);
-   temp = adjacent_reuse_data_serialization(ctxt, task_id, frame_num, reuse_data_is_required);
+   temp = adjacent_reuse_data_serialization(ctxt, task_id, frame_num, reuse_data_is_required,0);
    free_blob(reuse_info_blob);
    send_data(temp, conn);
 #if DEBUG_COMMU_SIZE

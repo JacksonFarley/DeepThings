@@ -1,0 +1,54 @@
+No symbol "task" in current context.
+$18 = 8
+$19 = {type = CONVOLUTIONAL, activation = LEAKY, cost_type = SSE, forward = 0x6b65c <forward_convolutional_layer_nnpack>, backward = 0x6b13c <backward_convolutional_layer>, 
+  update = 0x69918 <update_convolutional_layer>, forward_gpu = 0x0, backward_gpu = 0x0, update_gpu = 0x0, batch_normalize = 1, shortcut = 0, batch = 1, forced = 0, flipped = 0, inputs = 247808, 
+  outputs = 495616, nweights = 294912, nbiases = 256, extra = 0, truths = 0, h = 44, w = 44, c = 128, out_h = 44, out_w = 44, out_c = 256, n = 256, max_boxes = 0, groups = 1, size = 3, side = 0, 
+  stride = 1, reverse = 0, flatten = 0, spatial = 0, pad = 1, sqrt = 0, flip = 0, index = 0, binary = 0, xnor = 0, steps = 0, hidden = 0, truth = 0, smooth = 0, dot = 0, angle = 0, jitter = 0, 
+  saturation = 0, exposure = 0, shift = 0, ratio = 0, learning_rate_scale = 1, softmax = 0, classes = 0, coords = 0, background = 0, rescore = 0, objectness = 0, does_cost = 0, joint = 0, noadjust = 0, 
+  reorg = 0, log = 0, tanh = 0, alpha = 0, beta = 0, kappa = 0, coord_scale = 0, object_scale = 0, noobject_scale = 0, mask_scale = 0, class_scale = 0, bias_match = 0, random = 0, thresh = 0, 
+  classfix = 0, absolute = 0, onlyforward = 0, stopbackward = 0, dontload = 0, dontloadscales = 0, temperature = 0, probability = 0, scale = 0, cweights = 0x0, indexes = 0x0, input_layers = 0x0, 
+  input_sizes = 0x0, map = 0x0, rand = 0x0, cost = 0x0, state = 0x0, prev_state = 0x0, forgot_state = 0x0, forgot_delta = 0x0, state_delta = 0x0, combine_cpu = 0x0, combine_delta_cpu = 0x0, concat = 0x0, 
+  concat_delta = 0x0, binary_weights = 0x0, biases = 0x142ea0, bias_updates = 0x141f78, scales = 0x142380, scale_updates = 0x142788, weights = 0x63123008, weight_updates = 0x0, delta = 0x0, 
+  output = 0x62b7e008, squared = 0x0, norms = 0x0, spatial_mean = 0x0, mean = 0x13e8b8, variance = 0x13ecc0, mean_delta = 0x13f0c8, variance_delta = 0x13f4d0, rolling_mean = 0x13f8d8, 
+  rolling_variance = 0x13fce0, x = 0x0, x_norm = 0x0, m = 0x0, v = 0x0, bias_m = 0x0, bias_v = 0x0, scale_m = 0x0, scale_v = 0x0, z_cpu = 0x0, r_cpu = 0x0, h_cpu = 0x0, prev_state_cpu = 0x0, 
+  temp_cpu = 0x0, temp2_cpu = 0x0, temp3_cpu = 0x0, dh_cpu = 0x0, hh_cpu = 0x0, prev_cell_cpu = 0x0, cell_cpu = 0x0, f_cpu = 0x0, i_cpu = 0x0, g_cpu = 0x0, o_cpu = 0x0, c_cpu = 0x0, dc_cpu = 0x0, 
+  binary_input = 0x0, input_layer = 0x0, self_layer = 0x0, output_layer = 0x0, reset_layer = 0x0, update_layer = 0x0, state_layer = 0x0, input_gate_layer = 0x0, state_gate_layer = 0x0, 
+  input_save_layer = 0x0, state_save_layer = 0x0, input_state_layer = 0x0, state_state_layer = 0x0, input_z_layer = 0x0, state_z_layer = 0x0, input_r_layer = 0x0, state_r_layer = 0x0, input_h_layer = 0x0, 
+  state_h_layer = 0x0, wz = 0x0, uz = 0x0, wr = 0x0, ur = 0x0, wh = 0x0, uh = 0x0, uo = 0x0, wo = 0x0, uf = 0x0, wf = 0x0, ui = 0x0, wi = 0x0, ug = 0x0, wg = 0x0, softmax_tree = 0x0, 
+  workspace_size = 26615808}
+Continuing.
+[Thread 0x460ff470 (LWP 16240) exited]
+[New Thread 0x460ff470 (LWP 16241)]
+[Thread 0x460ff470 (LWP 16241) exited]
+[New Thread 0x460ff470 (LWP 16242)]
+[Switching to Thread 0x460ff470 (LWP 16242)]
+
+Thread 16 "deepthings" hit Breakpoint 8, forward_second_partition (model=0xe3d10, task_id=1, is_reuse=true, from=8) at ../src/inference_engine_helper.c:385
+385	         net.layers[l].h = ftp_para_reuse->input_tiles[task_id][l].h;
+Continuing.
+
+Thread 16 "deepthings" hit Breakpoint 9, forward_second_partition (model=0xe3d10, task_id=1, is_reuse=true, from=8) at ../src/inference_engine_helper.c:396
+396	      net.layers[l].forward(net.layers[l], net);
+$20 = {type = CONVOLUTIONAL, activation = LEAKY, cost_type = SSE, forward = 0x6b65c <forward_convolutional_layer_nnpack>, backward = 0x6b13c <backward_convolutional_layer>, 
+  update = 0x69918 <update_convolutional_layer>, forward_gpu = 0x0, backward_gpu = 0x0, update_gpu = 0x0, batch_normalize = 1, shortcut = 0, batch = 1, forced = 0, flipped = 0, inputs = 147968, 
+  outputs = 295936, nweights = 294912, nbiases = 256, extra = 0, truths = 0, h = 34, w = 34, c = 128, out_h = 34, out_w = 34, out_c = 256, n = 256, max_boxes = 0, groups = 1, size = 3, side = 0, 
+  stride = 1, reverse = 0, flatten = 0, spatial = 0, pad = 1, sqrt = 0, flip = 0, index = 0, binary = 0, xnor = 0, steps = 0, hidden = 0, truth = 0, smooth = 0, dot = 0, angle = 0, jitter = 0, 
+  saturation = 0, exposure = 0, shift = 0, ratio = 0, learning_rate_scale = 1, softmax = 0, classes = 0, coords = 0, background = 0, rescore = 0, objectness = 0, does_cost = 0, joint = 0, noadjust = 0, 
+  reorg = 0, log = 0, tanh = 0, alpha = 0, beta = 0, kappa = 0, coord_scale = 0, object_scale = 0, noobject_scale = 0, mask_scale = 0, class_scale = 0, bias_match = 0, random = 0, thresh = 0, 
+  classfix = 0, absolute = 0, onlyforward = 0, stopbackward = 0, dontload = 0, dontloadscales = 0, temperature = 0, probability = 0, scale = 0, cweights = 0x0, indexes = 0x0, input_layers = 0x0, 
+  input_sizes = 0x0, map = 0x0, rand = 0x0, cost = 0x0, state = 0x0, prev_state = 0x0, forgot_state = 0x0, forgot_delta = 0x0, state_delta = 0x0, combine_cpu = 0x0, combine_delta_cpu = 0x0, concat = 0x0, 
+  concat_delta = 0x0, binary_weights = 0x0, biases = 0x142ea0, bias_updates = 0x141f78, scales = 0x142380, scale_updates = 0x142788, weights = 0x63123008, weight_updates = 0x0, delta = 0x0, 
+  output = 0x62b7e008, squared = 0x0, norms = 0x0, spatial_mean = 0x0, mean = 0x13e8b8, variance = 0x13ecc0, mean_delta = 0x13f0c8, variance_delta = 0x13f4d0, rolling_mean = 0x13f8d8, 
+  rolling_variance = 0x13fce0, x = 0x0, x_norm = 0x0, m = 0x0, v = 0x0, bias_m = 0x0, bias_v = 0x0, scale_m = 0x0, scale_v = 0x0, z_cpu = 0x0, r_cpu = 0x0, h_cpu = 0x0, prev_state_cpu = 0x0, 
+  temp_cpu = 0x0, temp2_cpu = 0x0, temp3_cpu = 0x0, dh_cpu = 0x0, hh_cpu = 0x0, prev_cell_cpu = 0x0, cell_cpu = 0x0, f_cpu = 0x0, i_cpu = 0x0, g_cpu = 0x0, o_cpu = 0x0, c_cpu = 0x0, dc_cpu = 0x0, 
+  binary_input = 0x0, input_layer = 0x0, self_layer = 0x0, output_layer = 0x0, reset_layer = 0x0, update_layer = 0x0, state_layer = 0x0, input_gate_layer = 0x0, state_gate_layer = 0x0, 
+  input_save_layer = 0x0, state_save_layer = 0x0, input_state_layer = 0x0, state_state_layer = 0x0, input_z_layer = 0x0, state_z_layer = 0x0, input_r_layer = 0x0, state_r_layer = 0x0, input_h_layer = 0x0, 
+  state_h_layer = 0x0, wz = 0x0, uz = 0x0, wr = 0x0, ur = 0x0, wh = 0x0, uh = 0x0, uo = 0x0, wo = 0x0, uf = 0x0, wf = 0x0, ui = 0x0, wi = 0x0, ug = 0x0, wg = 0x0, softmax_tree = 0x0, 
+  workspace_size = 26615808}
+Continuing.
+
+Thread 16 "deepthings" received signal SIGSEGV, Segmentation fault.
+compute_input_packing (context=<optimized out>, reduction_block_offset=<optimized out>, output_image_subblock_start=<optimized out>, reduction_block_range=<optimized out>, output_image_subblock_size=12)
+    at /home/samosxx/NNPACK-darknet/src/convolution-inference.c:339
+339	/home/samosxx/NNPACK-darknet/src/convolution-inference.c: No such file or directory.
+Undefined set logging command: "offf".  Try "help set logging".

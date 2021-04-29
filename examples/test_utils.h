@@ -10,9 +10,10 @@
 #include "inference_engine_helper.h"
 #include "frame_partitioner.h"
 #include "reuse_data_serialization.h"
+#include "partial_network.h"
 
 /*Functions defined for testing and profiling*/
-void process_task_single_device(device_ctxt* ctxt, blob* temp, bool is_reuse);
+void process_task_single_device(device_ctxt* ctxt, blob* temp, bool is_reuse, int ftp_num);
 void process_everything_in_gateway(void *arg);
 void transfer_data_with_number(device_ctxt* client, device_ctxt* gateway, int32_t task_num);
 void transfer_data(device_ctxt* client, device_ctxt* gateway);

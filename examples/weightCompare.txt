@@ -1,0 +1,150 @@
+layer     filters    size              input                output
+    0 conv     32  3 x 3 / 1   608 x 608 x   3   ->   608 x 608 x  32
+    1 max          2 x 2 / 2   608 x 608 x  32   ->   304 x 304 x  32
+    2 conv     64  3 x 3 / 1   304 x 304 x  32   ->   304 x 304 x  64
+    3 max          2 x 2 / 2   304 x 304 x  64   ->   152 x 152 x  64
+    4 conv    128  3 x 3 / 1   152 x 152 x  64   ->   152 x 152 x 128
+    5 conv     64  1 x 1 / 1   152 x 152 x 128   ->   152 x 152 x  64
+    6 conv    128  3 x 3 / 1   152 x 152 x  64   ->   152 x 152 x 128
+    7 max          2 x 2 / 2   152 x 152 x 128   ->    76 x  76 x 128
+    8 conv    256  3 x 3 / 1    76 x  76 x 128   ->    76 x  76 x 256
+    9 conv    128  1 x 1 / 1    76 x  76 x 256   ->    76 x  76 x 128
+   10 conv    256  3 x 3 / 1    76 x  76 x 128   ->    76 x  76 x 256
+   11 max          2 x 2 / 2    76 x  76 x 256   ->    38 x  38 x 256
+   12 conv    512  3 x 3 / 1    38 x  38 x 256   ->    38 x  38 x 512
+   13 conv    256  1 x 1 / 1    38 x  38 x 512   ->    38 x  38 x 256
+   14 conv    512  3 x 3 / 1    38 x  38 x 256   ->    38 x  38 x 512
+   15 conv    256  1 x 1 / 1    38 x  38 x 512   ->    38 x  38 x 256
+   16 conv    512  3 x 3 / 1    38 x  38 x 256   ->    38 x  38 x 512
+   17 max          2 x 2 / 2    38 x  38 x 512   ->    19 x  19 x 512
+   18 conv   1024  3 x 3 / 1    19 x  19 x 512   ->    19 x  19 x1024
+   19 conv    512  1 x 1 / 1    19 x  19 x1024   ->    19 x  19 x 512
+   20 conv   1024  3 x 3 / 1    19 x  19 x 512   ->    19 x  19 x1024
+   21 conv    512  1 x 1 / 1    19 x  19 x1024   ->    19 x  19 x 512
+   22 conv   1024  3 x 3 / 1    19 x  19 x 512   ->    19 x  19 x1024
+   23 conv   1024  3 x 3 / 1    19 x  19 x1024   ->    19 x  19 x1024
+   24 conv   1024  3 x 3 / 1    19 x  19 x1024   ->    19 x  19 x1024
+   25 route  16
+   26 conv     64  1 x 1 / 1    38 x  38 x 512   ->    38 x  38 x  64
+   27 reorg              / 2    38 x  38 x  64   ->    19 x  19 x 256
+   28 route  27 24
+   29 conv   1024  3 x 3 / 1    19 x  19 x1280   ->    19 x  19 x1024
+   30 conv    425  1 x 1 / 1    19 x  19 x1024   ->    19 x  19 x 425
+   31 detection
+mask_scale: Using default '1.000000'
+Loading weights from ../models/yolo.weights...Done!
+Saving weights to layer_weights/l0.weights
+Loading weights from layer_weights/l0.weights...Done!
+Saving weights to layer_weights/l2.weights
+Loading weights from layer_weights/l2.weights...Layer 0: weight start old: -0.058582 new: -0.058582
+num 864   weight end   old: -0.022285 new: -0.022285
+Layer 0 weights match
+Done!
+Saving weights to layer_weights/l4.weights
+Loading weights from layer_weights/l4.weights...Layer 2: weight start old: 0.017645 new: 0.017645
+num 18432   weight end   old: 0.031955 new: 0.031955
+Layer 2 weights match
+Done!
+Saving weights to layer_weights/l5.weights
+Loading weights from layer_weights/l5.weights...Layer 4: weight start old: 0.055263 new: 0.055263
+num 73728   weight end   old: -0.069832 new: -0.069832
+Layer 4 weights match
+Done!
+Saving weights to layer_weights/l6.weights
+Loading weights from layer_weights/l6.weights...Layer 5: weight start old: 0.020517 new: 0.020517
+num 8192   weight end   old: -0.009116 new: -0.009116
+Layer 5 weights match
+Done!
+Saving weights to layer_weights/l8.weights
+Loading weights from layer_weights/l8.weights...Layer 6: weight start old: 0.112067 new: 0.112067
+num 73728   weight end   old: 0.015808 new: 0.015808
+Layer 6 weights match
+Done!
+Saving weights to layer_weights/l9.weights
+Loading weights from layer_weights/l9.weights...Layer 8: weight start old: -0.004220 new: -0.004220
+num 294912   weight end   old: 0.016705 new: 0.016705
+Layer 8 weights match
+Done!
+Saving weights to layer_weights/l10.weights
+Loading weights from layer_weights/l10.weights...Layer 9: weight start old: 0.145409 new: 0.145409
+num 32768   weight end   old: 0.030999 new: 0.030999
+Layer 9 weights match
+Done!
+Saving weights to layer_weights/l12.weights
+Loading weights from layer_weights/l12.weights...Layer 10: weight start old: -0.061928 new: -0.061928
+num 294912   weight end   old: -0.033159 new: -0.033159
+Layer 10 weights match
+Done!
+Saving weights to layer_weights/l13.weights
+Loading weights from layer_weights/l13.weights...Layer 12: weight start old: -0.011804 new: -0.011804
+num 1179648   weight end   old: -0.011687 new: -0.011687
+Layer 12 weights match
+Done!
+Saving weights to layer_weights/l14.weights
+Loading weights from layer_weights/l14.weights...Layer 13: weight start old: 0.030455 new: 0.030455
+num 131072   weight end   old: 0.092518 new: 0.092518
+Layer 13 weights match
+Done!
+Saving weights to layer_weights/l15.weights
+Loading weights from layer_weights/l15.weights...Layer 14: weight start old: 0.012858 new: 0.012858
+num 1179648   weight end   old: 0.020612 new: 0.020612
+Layer 14 weights match
+Done!
+Saving weights to layer_weights/l16.weights
+Loading weights from layer_weights/l16.weights...Layer 15: weight start old: 0.048888 new: 0.048888
+num 131072   weight end   old: -0.012052 new: -0.012052
+Layer 15 weights match
+Done!
+Saving weights to layer_weights/l18.weights
+Loading weights from layer_weights/l18.weights...Layer 16: weight start old: 0.008015 new: 0.008015
+num 1179648   weight end   old: 0.058285 new: 0.058285
+Layer 16 weights match
+Done!
+Saving weights to layer_weights/l19.weights
+Loading weights from layer_weights/l19.weights...Layer 18: weight start old: -0.005547 new: -0.005547
+num 4718592   weight end   old: 0.033787 new: 0.033787
+Layer 18 weights match
+Done!
+Saving weights to layer_weights/l20.weights
+Loading weights from layer_weights/l20.weights...Layer 19: weight start old: -0.064051 new: -0.064051
+num 524288   weight end   old: -0.041430 new: -0.041430
+Layer 19 weights match
+Done!
+Saving weights to layer_weights/l21.weights
+Loading weights from layer_weights/l21.weights...Layer 20: weight start old: -0.015114 new: -0.015114
+num 4718592   weight end   old: -0.020138 new: -0.020138
+Layer 20 weights match
+Done!
+Saving weights to layer_weights/l22.weights
+Loading weights from layer_weights/l22.weights...Layer 21: weight start old: -0.023459 new: -0.023459
+num 524288   weight end   old: 0.030673 new: 0.030673
+Layer 21 weights match
+Done!
+Saving weights to layer_weights/l23.weights
+Loading weights from layer_weights/l23.weights...Layer 22: weight start old: -0.050445 new: -0.050445
+num 4718592   weight end   old: 0.003851 new: 0.003851
+Layer 22 weights match
+Done!
+Saving weights to layer_weights/l24.weights
+Loading weights from layer_weights/l24.weights...Layer 23: weight start old: 0.007872 new: 0.007872
+num 9437184   weight end   old: -0.009336 new: -0.009336
+Layer 23 weights match
+Done!
+Saving weights to layer_weights/l26.weights
+Loading weights from layer_weights/l26.weights...Layer 24: weight start old: -0.004191 new: -0.004191
+num 9437184   weight end   old: 0.001184 new: 0.001184
+Layer 24 weights match
+Done!
+Saving weights to layer_weights/l29.weights
+Loading weights from layer_weights/l29.weights...Layer 26: weight start old: -0.008909 new: -0.008909
+num 32768   weight end   old: 0.005907 new: 0.005907
+Layer 26 weights match
+Done!
+Saving weights to layer_weights/l30.weights
+Loading weights from layer_weights/l30.weights...Layer 29: weight start old: 0.003383 new: 0.003383
+num 11796480   weight end   old: 0.002223 new: 0.002223
+Layer 29 weights match
+Done!
+Layer 30: weight start old: 0.003182 new: 0.003182
+num 435200   weight end   old: 0.014652 new: 0.014652
+Layer 30 weights match

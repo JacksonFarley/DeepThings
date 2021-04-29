@@ -175,8 +175,13 @@ tile_region relative_offsets(tile_region large, tile_region small){
     return output;
 }
 #if DATA_REUSE
-void record_overlapped_output(cnn_model* model, uint32_t task_id,  uint32_t l, float* layer_output){
-   ftp_parameters_reuse* ftp_para_reuse = model->ftp_para_reuse;
+void record_overlapped_output(cnn_model* model, uint32_t task_id,  uint32_t l, float* layer_output, int ftp_num){
+   ftp_parameters_reuse* ftp_para_reuse;
+   if(ftp_num == 0){
+      ftp_para_reuse = model->ftp_para_reuse;
+   } else {
+      ftp_para_reuse = model->sec_ftp_para_reuse;
+   }
    network_parameters* net_para = model->net_para;
    overlapped_tile_data regions_and_data = ftp_para_reuse->output_reuse_regions[task_id][l];
    uint32_t position;
@@ -203,8 +208,13 @@ void record_overlapped_output(cnn_model* model, uint32_t task_id,  uint32_t l, f
    ftp_para_reuse->output_reuse_regions[task_id][l] = regions_and_data;
 }
 
-float* stitch_reuse_output(cnn_model* model, uint32_t task_id,  uint32_t l, float* layer_output){
-   ftp_parameters_reuse* ftp_para_reuse = model->ftp_para_reuse;
+float* stitch_reuse_output(cnn_model* model, uint32_t task_id,  uint32_t l, float* layer_output, int ftp_num){
+   ftp_parameters_reuse* ftp_para_reuse;
+   if(ftp_num == 0){
+      ftp_para_reuse = model->ftp_para_reuse;
+   } else {
+      ftp_para_reuse = model->sec_ftp_para_reuse;
+   } 
    network_parameters* net_para = model->net_para;
    float* stitched_data = (float*)malloc(ftp_para_reuse->input_tiles[task_id][l+1].w*ftp_para_reuse->input_tiles[task_id][l+1].h*net_para->output_maps[l].c*sizeof(float));
    tile_region offset_index;
@@ -329,14 +339,14 @@ void forward_partition(cnn_model* model, uint32_t task_id, bool is_reuse){
       } else {cropped_output = net.layers[l].output;}  
       net.input = cropped_output;
 #if DATA_REUSE
-      record_overlapped_output(model, task_id, l, cropped_output);/*Record the generated overlapped regions for reuse*/
+      record_overlapped_output(model, task_id, l, cropped_output, 0);/*Record the generated overlapped regions for reuse*/
       if((model->ftp_para_reuse->schedule[task_id] == 1)&&is_reuse){
          if (to_free_next_layer_input == 1) {
             free(stitched_next_layer_input);
             to_free_next_layer_input = 0;
          }
          if(l < (ftp_para_reuse->fused_layers - 1)){
-            stitched_next_layer_input = stitch_reuse_output(model, task_id, l, cropped_output);
+            stitched_next_layer_input = stitch_reuse_output(model, task_id, l, cropped_output,0);
             to_free_next_layer_input = 1;
          }
          net.input = stitched_next_layer_input;
@@ -369,9 +379,9 @@ void forward_second_partition(cnn_model* model, uint32_t task_id, bool is_reuse,
 #if DATA_REUSE
    uint32_t to_free_next_layer_input = 0;
    float* stitched_next_layer_input = NULL; 
-   ftp_parameters_reuse* ftp_para_reuse = model->ftp_para_reuse;
-   if((model->ftp_para_reuse->schedule[task_id] == 1)&&is_reuse){
-      for(l = from; l < ftp_para_reuse->fused_layers; l++){
+   ftp_parameters_reuse* ftp_para_reuse = model->sec_ftp_para_reuse;
+   if((ftp_para_reuse->schedule[task_id] == 1)&&is_reuse){
+      for(l = from; l < (int) ftp_para_reuse->fused_layers; l++){
          net.layers[l].h = ftp_para_reuse->input_tiles[task_id][l].h;
          net.layers[l].out_h = (net.layers[l].h/net.layers[l].stride); 
          net.layers[l].w = ftp_para_reuse->input_tiles[task_id][l].w;
@@ -399,7 +409,7 @@ void forward_second_partition(cnn_model* model, uint32_t task_id, bool is_reuse,
          tmp = relative_offsets(ftp_para->input_tiles[task_id][l], 
                                        ftp_para->output_tiles[task_id][l]);
 #if DATA_REUSE
-         if((model->ftp_para_reuse->schedule[task_id] == 1)&&is_reuse){
+         if((ftp_para_reuse->schedule[task_id] == 1)&&is_reuse){
             tmp = relative_offsets(ftp_para_reuse->input_tiles[task_id][l], 
                                        ftp_para_reuse->output_tiles[task_id][l]);
          }
@@ -411,14 +421,14 @@ void forward_second_partition(cnn_model* model, uint32_t task_id, bool is_reuse,
       } else {cropped_output = net.layers[l].output;}  
       net.input = cropped_output;
 #if DATA_REUSE
-      record_overlapped_output(model, task_id, l, cropped_output);/*Record the generated overlapped regions for reuse*/
-      if((model->ftp_para_reuse->schedule[task_id] == 1)&&is_reuse){
+      record_overlapped_output(model, task_id, l, cropped_output, 1);/*Record the generated overlapped regions for reuse*/
+      if((ftp_para_reuse->schedule[task_id] == 1)&&is_reuse){
          if (to_free_next_layer_input == 1) {
             free(stitched_next_layer_input);
             to_free_next_layer_input = 0;
          }
          if(l < (ftp_para_reuse->fused_layers - 1)){
-            stitched_next_layer_input = stitch_reuse_output(model, task_id, l, cropped_output);
+            stitched_next_layer_input = stitch_reuse_output(model, task_id, l, cropped_output, 1);
             to_free_next_layer_input = 1;
          }
          net.input = stitched_next_layer_input;

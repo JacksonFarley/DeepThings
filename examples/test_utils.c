@@ -9,6 +9,7 @@
 #define MULTI_THREAD_TASKS
 
 
+
 void process_everything_in_gateway(void *arg){
    cnn_model* model = (cnn_model*)(((device_ctxt*)(arg))->model);
 #ifdef NNPACK
@@ -30,12 +31,18 @@ void process_everything_in_gateway(void *arg){
 
 
 
-void process_task_single_device(device_ctxt* ctxt, blob* temp, bool is_reuse){
+void process_task_single_device(device_ctxt* ctxt, blob* temp, bool is_reuse, int ftp_num){
    
 #ifndef QUIET_FLAG
    printf("Task is: %d, frame number is %d\n", get_blob_task_id(temp), get_blob_frame_seq(temp));
 #endif
    cnn_model* model = (cnn_model*)(ctxt->model);
+   ftp_parameters_reuse* ftp_para_reuse;
+    if(ftp_num == 0){
+      ftp_para_reuse = model->ftp_para_reuse;
+   } else {
+      ftp_para_reuse = model->sec_ftp_para_reuse;
+   } 
    blob* result;
    set_model_input(model, (float*)temp->data);
    forward_partition(model, get_blob_task_id(temp), is_reuse);  
@@ -44,15 +51,15 @@ void process_task_single_device(device_ctxt* ctxt, blob* temp, bool is_reuse){
                                       (uint8_t*)(get_model_output(model, model->ftp_para->fused_layers-1))
                                      );
 #if DATA_REUSE
-   set_coverage(model->ftp_para_reuse, get_blob_task_id(temp), get_blob_frame_seq(temp));
+   set_coverage(ftp_para_reuse, get_blob_task_id(temp), get_blob_frame_seq(temp));
    /*send_reuse_data(ctxt, temp);*/
    /*if task doesn't generate any reuse_data*/
    blob* task_input_blob=temp;
-   if(model->ftp_para_reuse->schedule[get_blob_task_id(task_input_blob)] != 1){
+   if(ftp_para_reuse->schedule[get_blob_task_id(task_input_blob)] != 1){
 #ifndef QUIET_FLAG
       printf("Serialize reuse data for task %d:%d \n", get_blob_cli_id(task_input_blob), get_blob_task_id(task_input_blob)); 
 #endif
-      blob* serialized_temp  = self_reuse_data_serialization(ctxt, get_blob_task_id(task_input_blob), get_blob_frame_seq(task_input_blob));
+      blob* serialized_temp  = self_reuse_data_serialization(ctxt, get_blob_task_id(task_input_blob), get_blob_frame_seq(task_input_blob), ftp_num);
       copy_blob_meta(serialized_temp, task_input_blob);
       free_blob(serialized_temp);
    }
@@ -75,45 +82,52 @@ void process_task_single_device_jf(void * arg){
 #endif
 
    cnn_model* model = (cnn_model*)(ctxt->model);
-   ftp_parameters* ftp_para = model->ftp_para; 
+   ftp_parameters* ftp_para; 
+   ftp_parameters_reuse* ftp_para_reuse;
+    if(ftp_num == 0){
+      ftp_para = model->ftp_para; 
+      ftp_para_reuse = model->ftp_para_reuse;
+   } else {
+      ftp_para = model->sec_ftp_para;
+      ftp_para_reuse = model->sec_ftp_para_reuse;
+   }
    blob* result;
    set_model_input(model, (float*)temp->data);
-
+  
    if(ftp_num == 0){
       forward_partition(model, get_blob_task_id(temp), is_reuse);  
-      result = new_blob_and_copy_data(0, 
-                                      get_model_byte_size(model, ftp_para->fused_layers-1), 
-                                      (uint8_t*)(get_model_output(model, ftp_para->fused_layers-1))
-                                     );
-
    } else { 
-      ftp_para = model->sec_ftp_para; 
       forward_second_partition(model, get_blob_task_id(temp), is_reuse, ftp_para->fused_start);  
-
+   }
       result = new_blob_and_copy_data(0, 
                                       get_model_byte_size(model, ftp_para->fused_layers-1), 
                                       (uint8_t*)(get_model_output(model, ftp_para->fused_layers-1))
                                      );
-   }
 
 
 #if DATA_REUSE
-   set_coverage(model->ftp_para_reuse, get_blob_task_id(temp), get_blob_frame_seq(temp));
+   set_coverage(ftp_para_reuse, get_blob_task_id(temp), get_blob_frame_seq(temp));
+   
    /*send_reuse_data(ctxt, temp);*/
    /*if task doesn't generate any reuse_data*/
    blob* task_input_blob=temp;
-   if(model->ftp_para_reuse->schedule[get_blob_task_id(task_input_blob)] != 1){
+   
+
+   if(ftp_para_reuse->schedule[get_blob_task_id(task_input_blob)] != 1){
 #ifndef QUIET_FLAG
       printf("Serialize reuse data for task %d:%d \n", get_blob_cli_id(task_input_blob), get_blob_task_id(task_input_blob)); 
 #endif
-      blob* serialized_temp  = self_reuse_data_serialization(ctxt, get_blob_task_id(task_input_blob), get_blob_frame_seq(task_input_blob));
+      blob* serialized_temp  = self_reuse_data_serialization(ctxt, get_blob_task_id(task_input_blob), get_blob_frame_seq(task_input_blob), ftp_num);
       copy_blob_meta(serialized_temp, task_input_blob);
       free_blob(serialized_temp);
    }
+
 #endif
    copy_blob_meta(result, temp);
    enqueue(ctxt->result_queue, result); 
    free_blob(result);
+   
+    
 }
 
 void partition_frame_and_perform_inference_thread_single_device(void *arg){
@@ -188,7 +202,7 @@ void partition_frame_and_perform_inference_thread_single_device(void *arg){
          sys_thread_join(t1);
 
 #else  /* Single-threaded tasks as normal */
-         process_task_single_device(ctxt, temp, data_ready);
+         process_task_single_device(ctxt, temp, data_ready, 0);
         
 #endif /* MULTI_THREAD_TASKS */
 
@@ -230,7 +244,7 @@ void partition_secondary_and_perform_inference_thread_single_device(void *arg){
    int32_t frame_seq;
    int32_t count = 0;
    for(count = 0; count < FRAME_NUM; count ++){
-
+      frame_num = count;
       temp2 = dequeue_and_merge(ctxt);
       // at this point, the stitching should be correct
       cli_id = get_blob_cli_id(temp2);
@@ -275,27 +289,26 @@ void partition_secondary_and_perform_inference_thread_single_device(void *arg){
 	 printf("====================Processing task id is %d, data source is %d, frame_seq is %d====================\n", get_blob_task_id(temp), get_blob_cli_id(temp), get_blob_frame_seq(temp));
 #endif
 
-     /* TESTING: Make each task a separate process */ 
 
 #if DATA_REUSE
-         data_ready = is_reuse_ready(model->ftp_para_reuse, get_blob_task_id(temp), frame_num);
-         if((model->ftp_para_reuse->schedule[get_blob_task_id(temp)] == 1) && data_ready) {
+         data_ready = is_reuse_ready(model->sec_ftp_para_reuse, get_blob_task_id(temp), frame_num);
+         if((model->sec_ftp_para_reuse->schedule[get_blob_task_id(temp)] == 1) && data_ready) {
             blob* shrinked_temp = new_blob_and_copy_data(get_blob_task_id(temp), 
-                       (model->ftp_para_reuse->shrinked_input_size[get_blob_task_id(temp)]),
-                       (uint8_t*)(model->ftp_para_reuse->shrinked_input[get_blob_task_id(temp)]));
+                       (model->sec_ftp_para_reuse->shrinked_input_size[get_blob_task_id(temp)]),
+                       (uint8_t*)(model->sec_ftp_para_reuse->shrinked_input[get_blob_task_id(temp)]));
             copy_blob_meta(shrinked_temp, temp);
             free_blob(temp);
             temp = shrinked_temp;
 
             /*Assume all reusable data is generated locally*/
-            /*
+            /* 
             reuse_data_is_required = check_missing_coverage(model, get_blob_task_id(temp), get_blob_frame_seq(temp));
             request_reuse_data(ctxt, temp, reuse_data_is_required);
             free(reuse_data_is_required);
-	    */
+            */
          }
 #if DEBUG_DEEP_EDGE
-         if((model->ftp_para_reuse->schedule[get_blob_task_id(temp)] == 1) && (!data_ready))
+         if((model->sec_ftp_para_reuse->schedule[get_blob_task_id(temp)] == 1) && (!data_ready))
             printf("The reuse data is not ready yet!\n");
 #endif/*DEBUG_DEEP_EDGE*/
 
@@ -303,6 +316,8 @@ void partition_secondary_and_perform_inference_thread_single_device(void *arg){
          /*process_task(ctxt, temp, data_ready);*/
 
 #ifdef MULTI_THREAD_TASKS
+         /* TESTING: Make each task a separate process */ 
+
          ptsd_args myargs = {ctxt, temp, data_ready, 1}; 
 
          sys_thread_t t1 = sys_thread_new("process_task_single_device_jf", process_task_single_device_jf, &myargs, 0, 0);
@@ -310,7 +325,7 @@ void partition_secondary_and_perform_inference_thread_single_device(void *arg){
          sys_thread_join(t1);
 
 #else  /* Single-threaded tasks as normal */
-         process_task_single_device(ctxt, temp, data_ready);
+         process_task_single_device(ctxt, temp, data_ready, 1);
         
 #endif /* MULTI_THREAD_TASKS */
 
